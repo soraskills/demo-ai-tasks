@@ -1,0 +1,38 @@
+name: Tâche pour Claude Code
+description: Une tâche suffisamment spécifiée pour être réalisée par Claude Code
+title: "[Claude] "
+projects: ["soraskills/3"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Plus la tâche est précise, meilleur est le résultat. Une tâche = une PR.
+        Ajoute le label **claude** pour une exécution automatique (GitHub Action),
+        sinon passe-la en **Ready for Claude** et lance `/next-task` en local.
+  - type: textarea
+    id: objectif
+    attributes:
+      label: Objectif
+      description: Ce qu'on veut obtenir, en 1 à 3 phrases (le "pourquoi" aide Claude à faire les bons choix).
+    validations:
+      required: true
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Critères d'acceptation
+      description: Liste vérifiable. Claude s'en sert pour savoir quand il a fini.
+      value: |
+        - [ ]
+        - [ ] Les tests passent
+    validations:
+      required: true
+  - type: textarea
+    id: contexte
+    attributes:
+      label: Contexte et pistes
+      description: Fichiers concernés, liens, exemples, décisions déjà prises.
+  - type: textarea
+    id: contraintes
+    attributes:
+      label: Hors périmètre / contraintes
+      description: Ce que Claude ne doit PAS toucher (fichiers, dépendances, API publique…).
