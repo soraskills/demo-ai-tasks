@@ -24,16 +24,22 @@ jobs:
         id: claude
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Les PR de spec, de triage et de build sont ouvertes par l'app Claude (acteur claude[bot]).
+          allowed_bots: claude
           prompt: |
             Relis la PR #${{ github.event.pull_request.number }} en suivant REVIEW.md, passe par passe.
             Publie tes findings en commentaires inline puis un commentaire de synthèse.
-            Termine en écrivant le nombre de findings « Important » dans le fichier review-result.txt
-            (une seule ligne, un entier).
+            Rends enfin, en sortie structurée, le nombre de findings « Important » (champ `important`).
+          # Le résultat passe par --json-schema (sortie structurée de l'action) plutôt que par un fichier :
+          # sur les PR ouvertes par un bot, l'action restreint les outils, et l'écriture d'un fichier y est refusée.
           claude_args: |
             --max-turns 30
-            --allowedTools Read,Glob,Grep,Write(review-result.txt),Bash(git diff:*),Bash(git log:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),mcp__github_inline_comment__create_inline_comment
+            --json-schema '{"type":"object","properties":{"important":{"type":"integer","minimum":0}},"required":["important"]}'
+            --allowedTools Read,Glob,Grep,Bash(git diff:*),Bash(git log:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),mcp__github_inline_comment__create_inline_comment
       - name: Bloquer si finding Important
+        env:
+          RESULT: ${{ steps.claude.outputs.structured_output }}
         run: |
-          N=$(cat review-result.txt 2>/dev/null || echo "absent")
+          N=$(node -e 'try { const n = JSON.parse(process.env.RESULT || "{}").important; console.log(Number.isInteger(n) ? n : "absent") } catch { console.log("absent") }')
           echo "Findings Important : $N"
           [ "$N" = "0" ] || { echo "::error::Revue : $N finding(s) Important (ou résultat absent)."; exit 1; }

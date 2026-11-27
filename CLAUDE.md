@@ -10,6 +10,7 @@ Démo du playbook « AI-native SDLC » d'Anthropic, profil petite équipe. Proce
 
 ## Vérifier ton travail
 Une tâche n'est finie que si `npm run verify` sort en 0. Colle la fin de sa sortie dans la PR.
+Dans GitHub Actions, sur une PR ouverte par un bot, les commandes npm te sont refusées : pousse ton commit, attends le check `verify` (`gh pr checks`, `gh run view --log-failed`) et rapporte son résultat. Ne déclare jamais « vérifié » sans l'un ou l'autre.
 Sortie saine : `Test Files … passed`, `… passed` côté Playwright, `0 exigence(s) manquante(s)` ou aucune ligne ❌.
 
 ## Voies (champ « Catégorie » du Project soraskills #3)

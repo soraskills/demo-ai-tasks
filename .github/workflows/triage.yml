@@ -36,6 +36,8 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # La sonde de prod déclenche ce job avec le GITHUB_TOKEN : l'acteur est github-actions[bot].
+          allowed_bots: github-actions
           prompt: |
             Applique le skill triage-bug (.claude/skills/triage-bug/SKILL.md) à l'issue #${{ env.ISSUE }} de ${{ github.repository }}.
             Ne modifie aucun fichier sous src/. Ne merge rien.
