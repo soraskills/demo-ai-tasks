@@ -18,7 +18,7 @@ export interface Reservation {
 }
 // Retrait sans créneau (R-9, SC-8) : ajouté par le bénévole, hors capacité (R-2 ne compte que les réservations).
 // Type distinct et champ optionnel d'Etat : n'affecte ni Reservation ni les propriétés P-1 à P-4.
-export interface RetraitSansCreneau { distribution: string /* YYYY-MM-DD, Paris */; nom: string; recupere: boolean }
+export interface RetraitSansCreneau { distribution: string /* YYYY-MM-DD, Paris */; nom?: string /* supprimé par purger (R-7) */; recupere: boolean }
 export interface Etat { reservations: readonly Reservation[]; sansCreneau?: readonly RetraitSansCreneau[] }
 export type Resultat = { ok: true; etat: Etat } | { ok: false; raison: 'complet' | 'deja_reserve' | 'trop_tard' | 'introuvable' };
 
@@ -32,11 +32,12 @@ export function reserver(etat: Etat, r: Omit<Reservation, 'recupere'>, creneau: 
 export function annuler(etat: Etat, commande: string, maintenant: Date): Resultat;
 export function deplacer(etat: Etat, commande: string, vers: Creneau, maintenant: Date): Resultat;
 export function heureRappel(creneau: Creneau): Date;     // début − 1 h
-export function purger(etat: Etat, jour: string): Etat;  // supprime nom/téléphone du jour
+export function purger(etat: Etat, jour: string): Etat;  // supprime nom/téléphone du jour, réservations ET retraits sans créneau (P-9)
 ```
 
 ## Ordre de travail
 1. Domaine pur (`src/domain/creneaux.ts`) : faire passer P-1 à P-7, P-10 à P-12 (P-8 et P-9 relèvent de la sous-issue 5).
+   L'horizon R-12 s'applique dans l'API (sous-issue 2) avec `distributionsOuvertes` : `reserver` et `deplacer` du domaine ne le contrôlent pas.
 2. Stockage et API (lien personnel par jeton, lecture des créneaux des `distributionsOuvertes`, réserver/annuler/déplacer refusés hors horizon, liste des dates fermées).
 3. UI adhérent (mobile) : SC-1 à SC-6, SC-10, SC-11.
 4. UI bénévole : liste par créneau, case « récupéré », ajout d'un retrait sans créneau, dates fermées : SC-7, SC-8, SC-12.

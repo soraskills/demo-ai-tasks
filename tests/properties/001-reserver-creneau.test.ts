@@ -41,7 +41,8 @@ const parisParts = (d: Date) =>
 
 // Opérations aléatoires sur un petit univers (4 créneaux, 8 commandes), toutes à plus de 24 h.
 const NOW = new Date('2026-12-01T08:00:00Z');
-const creneau = (i: number): Creneau => ({ debut: new Date(Date.UTC(2026, 11, 8, 16 + Math.floor(i / 4), (i % 4) * 15)) });
+// Vendredi 04/12/2026, 17 h 00 à 17 h 45 (Paris) : 2ᵉ distribution ouverte à NOW (R-12), à plus de 24 h.
+const creneau = (i: number): Creneau => ({ debut: new Date(Date.UTC(2026, 11, 4, 16 + Math.floor(i / 4), (i % 4) * 15)) });
 const opArb = fc.oneof(
   fc.record({ t: fc.constant('r' as const), c: fc.integer({ min: 0, max: 7 }), i: fc.integer({ min: 0, max: 3 }) }),
   fc.record({ t: fc.constant('a' as const), c: fc.integer({ min: 0, max: 7 }), i: fc.constant(0) }),
@@ -127,12 +128,13 @@ describe('spec 001', () => {
     })));
 
   propriete('[001:P-9] la purge supprime nom et téléphone de la distribution, pas des autres', () =>
-    fc.assert(fc.property(fc.array(fc.integer({ min: 0, max: 7 }), { maxLength: 8 }), (jours) => {
+    fc.assert(fc.property(fc.array(fc.integer({ min: 0, max: 7 }), { maxLength: 8 }), fc.array(fc.integer({ min: 0, max: 7 }), { maxLength: 4 }), (jours, joursSans) => {
       const base = Date.UTC(2026, 11, 1, 16);
       const etat: Etat = {
         reservations: jours.map((j, k) => ({
           commande: `c${k}`, creneau: base + j * 24 * H, nom: 'Nom', telephone: '0600000000', recupere: false,
         })),
+        sansCreneau: joursSans.map((j) => ({ distribution: jourParis(new Date(base + j * 24 * H)), nom: 'Nom', recupere: true })),
       };
       const cible = jourParis(new Date(base + 3 * 24 * H));
       const apres = purger(etat, cible);
@@ -141,8 +143,13 @@ describe('spec 001', () => {
         expect(r.nom === undefined && r.telephone === undefined).toBe(dujour);
         if (!dujour) expect(r).toEqual(etat.reservations[k]);
       });
-    })));
-
+      expect(apres.sansCreneau?.length ?? 0).toBe(joursSans.length);
+      (apres.sansCreneau ?? []).forEach((r, k) => {
+        const dujour = r.distribution === cible;
+        expect(r.nom === undefined).toBe(dujour);
+        if (!dujour) expect(r).toEqual(etat.sansCreneau![k]);
+      });
+    }), { examples: [[[3], [3, 4]]] }));
   propriete('[001:P-12] annuler et déplacer sont refusés à moins de 24 h, état inchangé', () =>
     fc.assert(fc.property(
       fc.array(opArb, { minLength: 1, maxLength: 30 }), fc.nat(), fc.integer({ min: -2 * 60, max: 24 * 60 - 1 }), fc.integer({ min: 0, max: 3 }),

@@ -117,7 +117,7 @@ Pour tout couple (maintenant, début de créneau), la modification est autorisé
 Pour tout début de créneau, le rappel est programmé exactement 1 h avant. Couvre R-5.
 
 ### P-9 — Purge des données personnelles
-Pour tout état, après la purge d'une distribution, aucune réservation de cette distribution ne contient de nom ni de téléphone, et celles des autres distributions restent intactes. Couvre R-7.
+Pour tout état, après la purge d'une distribution, aucune réservation ni aucun retrait sans créneau de cette distribution ne contient de nom ni de téléphone, et ceux des autres distributions restent intacts. Couvre R-7.
 
 ### P-10 — Aucun créneau un jour fermé
 Pour tout jour et toute liste de dates fermées, les créneaux du jour sont vides si le jour est fermé, et identiques à ceux sans fermeture sinon. Couvre R-11.

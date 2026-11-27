@@ -12,7 +12,7 @@ export interface Reservation {
   recupere: boolean;
 }
 /** Retrait sans créneau (R-9, SC-8), hors capacité. */
-export interface RetraitSansCreneau { distribution: string; nom: string; recupere: boolean }
+export interface RetraitSansCreneau { distribution: string; nom?: string; recupere: boolean }
 export interface Etat { reservations: readonly Reservation[]; sansCreneau?: readonly RetraitSansCreneau[] }
 export type Resultat =
   | { ok: true; etat: Etat }
