@@ -11,7 +11,7 @@ Les adhérents commandent leur panier puis viennent le chercher au local quand i
 
 ## Résultat attendu
 - **Pour l'adhérent** : en commandant, il choisit un créneau de retrait de 15 minutes, le mardi ou le vendredi entre 17 h et 19 h. Il connaît son heure de passage à l'avance et ne fait plus la queue.
-- **Capacité** : un créneau accueille 5 personnes au plus.
+- **Capacité** : un créneau accueille 5 paniers au plus (une réservation = un panier, quel que soit le nombre de personnes qui viennent le chercher).
 - **Annulation et déplacement** : l'adhérent annule ou déplace lui-même son créneau, jusqu'à 24 h avant le début du créneau.
 - **Rappel** : il reçoit un rappel par SMS 1 h avant son créneau.
 - **Pour les bénévoles** : les arrivées sont étalées sur les deux heures, sans pic.
