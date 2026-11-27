@@ -143,6 +143,19 @@ describe('spec 001', () => {
       });
     })));
 
+  propriete('[001:P-12] annuler et déplacer sont refusés à moins de 24 h, état inchangé', () =>
+    fc.assert(fc.property(
+      fc.array(opArb, { minLength: 1, maxLength: 30 }), fc.nat(), fc.integer({ min: -2 * 60, max: 24 * 60 - 1 }), fc.integer({ min: 0, max: 3 }),
+      (ops, k, avantMin, i) => {
+        const etat = rejouer(ops);
+        fc.pre(etat.reservations.length > 0);
+        const r = etat.reservations[k % etat.reservations.length];
+        const maintenant = new Date(r.creneau - avantMin * MIN);
+        expect(annuler(etat, r.commande, maintenant)).toEqual({ ok: false, raison: 'trop_tard' });
+        expect(deplacer(etat, r.commande, creneau(i), maintenant)).toEqual({ ok: false, raison: 'trop_tard' });
+      },
+    ), { examples: [[[{ t: 'r', c: 0, i: 0 }], 0, 24 * 60 - 1, 1], [[{ t: 'r', c: 0, i: 0 }], 0, 0, 1]] }));
+
   propriete('[001:P-10] aucun créneau un jour fermé, les autres jours inchangés', () =>
     fc.assert(fc.property(jourArb, fc.uniqueArray(jourArb, { maxLength: 10 }), fc.boolean(), (jour, autres, fermer) => {
       const fermetures = new Set(fermer ? [...autres, jour] : autres.filter((j) => j !== jour));

@@ -11,7 +11,9 @@ export interface Reservation {
   telephone?: string;
   recupere: boolean;
 }
-export interface Etat { reservations: readonly Reservation[] }
+/** Retrait sans créneau (R-9, SC-8), hors capacité. */
+export interface RetraitSansCreneau { distribution: string; nom: string; recupere: boolean }
+export interface Etat { reservations: readonly Reservation[]; sansCreneau?: readonly RetraitSansCreneau[] }
 export type Resultat =
   | { ok: true; etat: Etat }
   | { ok: false; raison: 'complet' | 'deja_reserve' | 'trop_tard' | 'introuvable' };

@@ -125,6 +125,9 @@ Pour tout jour et toute liste de dates fermées, les créneaux du jour sont vide
 ### P-11 — Horizon des 2 prochaines distributions
 Pour tout instant et toute liste de dates fermées, les distributions ouvertes à la réservation sont exactement les 2 premiers mardis ou vendredis non fermés dont 19 h 00 (Paris) n'est pas passée (oracle : parcours jour par jour). Couvre R-12.
 
+### P-12 — Refus à moins de 24 h
+Pour tout état et toute réservation dont le créneau commence dans moins de 24 h (ou est déjà commencé), annuler et déplacer sont refusés (`trop_tard`) et l'état reste inchangé. Couvre R-4.
+
 ## Points à valider (gate 1)
 - **Outil de commande** : lequel, et comment une commande est reliée à un créneau et reçoit son lien personnel ? Le plan suppose une commande identifiée par un jeton opaque, fourni par l'outil actuel (à confirmer).
 - **Fournisseur SMS** : lequel, et qui paie ? Le plan l'isole derrière une interface `EnvoiSms`.

@@ -16,7 +16,10 @@ export interface Reservation {
   telephone?: string;
   recupere: boolean;
 }
-export interface Etat { reservations: readonly Reservation[] }
+// Retrait sans créneau (R-9, SC-8) : ajouté par le bénévole, hors capacité (R-2 ne compte que les réservations).
+// Type distinct et champ optionnel d'Etat : n'affecte ni Reservation ni les propriétés P-1 à P-4.
+export interface RetraitSansCreneau { distribution: string /* YYYY-MM-DD, Paris */; nom: string; recupere: boolean }
+export interface Etat { reservations: readonly Reservation[]; sansCreneau?: readonly RetraitSansCreneau[] }
 export type Resultat = { ok: true; etat: Etat } | { ok: false; raison: 'complet' | 'deja_reserve' | 'trop_tard' | 'introuvable' };
 
 export type Fermetures = ReadonlySet<string>;           // dates fermées, YYYY-MM-DD (Paris)
@@ -33,7 +36,7 @@ export function purger(etat: Etat, jour: string): Etat;  // supprime nom/télép
 ```
 
 ## Ordre de travail
-1. Domaine pur (`src/domain/creneaux.ts`) : faire passer P-1 à P-7, P-10 et P-11 (P-8 et P-9 relèvent de la sous-issue 5).
+1. Domaine pur (`src/domain/creneaux.ts`) : faire passer P-1 à P-7, P-10 à P-12 (P-8 et P-9 relèvent de la sous-issue 5).
 2. Stockage et API (lien personnel par jeton, lecture des créneaux des `distributionsOuvertes`, réserver/annuler/déplacer refusés hors horizon, liste des dates fermées).
 3. UI adhérent (mobile) : SC-1 à SC-6, SC-10, SC-11.
 4. UI bénévole : liste par créneau, case « récupéré », ajout d'un retrait sans créneau, dates fermées : SC-7, SC-8, SC-12.
@@ -42,14 +45,14 @@ export function purger(etat: Etat, jour: string): Etat;  // supprime nom/télép
 ## Sous-issues (une PR chacune)
 | # | Titre | Catégorie | Effort | Exécution | Couvre |
 |---|---|---|---|---|---|
-| 1 | Domaine : créneaux, capacité, délai, fuseau, fermetures, horizon | Feature | Medium | Action (auto) | P-1 à P-7, P-10, P-11 |
+| 1 | Domaine : créneaux, capacité, délai, fuseau, fermetures, horizon | Feature | Medium | Action (auto) | P-1 à P-7, P-10 à P-12 |
 | 2 | Stockage, API et lien personnel | Feature | Medium | Action (auto) | SC-9 (l'API doit préserver P-3, P-4) |
 | 3 | UI adhérent : réserver, annuler, déplacer | Feature | Medium | Action (auto) | SC-1 à SC-6, SC-10, SC-11 |
 | 4 | UI bénévole : liste, retraits, dates fermées | Feature | Medium | Action (auto) | SC-7, SC-8, SC-12 |
 | 5 | Rappel SMS et purge RGPD | Feature | Medium | Local (clés SMS) | P-8, P-9 |
 
 ## Fichiers touchés
-- `src/domain/creneaux.ts` (nouveau), `src/domain/index.ts`
+- `src/domain/creneaux.ts` (nouveau ; importé directement, `src/domain/index.ts` ne le ré-exporte pas pour éviter un import circulaire)
 - `tests/properties/001-reserver-creneau.test.ts`, `e2e/001-*.spec.ts` (scénarios)
 - UI et API : à préciser dans les sous-issues 2 à 4
 
