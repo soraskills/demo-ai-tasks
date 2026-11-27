@@ -14,6 +14,24 @@ const jourArb = fc
   .integer({ min: Date.UTC(2026, 0, 1), max: Date.UTC(2028, 11, 31) })
   .map((t) => new Date(t).toISOString().slice(0, 10));
 const instantArb = fc.date({ min: new Date('2026-01-01'), max: new Date('2029-01-01'), noInvalidDate: true });
+const jourParis = (d: Date) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+// Rejoue le corps sous plusieurs fuseaux de processus : le résultat ne doit pas en dépendre.
+const FUSEAUX = ['UTC', 'Europe/Paris', 'America/New_York', 'Pacific/Auckland'];
+function sousFuseaux(corps: () => void) {
+  const avant = process.env.TZ;
+  try {
+    for (const tz of FUSEAUX) { process.env.TZ = tz; corps(); }
+  } finally {
+    if (avant === undefined) delete process.env.TZ; else process.env.TZ = avant;
+  }
+}
+// Jours de changement d'heure (Europe/Paris) et voisins, 2026-2028.
+const BASCULES = [
+  '2026-03-26', '2026-03-27', '2026-03-28', '2026-03-31', '2026-10-27', '2026-10-30', '2026-10-31',
+  '2027-03-25', '2027-03-26', '2027-03-27', '2027-03-30', '2027-10-26', '2027-10-29', '2027-10-30',
+  '2028-03-28', '2028-03-31', '2028-10-27', '2028-10-31',
+];
 const parisParts = (d: Date) =>
   Object.fromEntries(
     new Intl.DateTimeFormat('en-GB', {
@@ -77,7 +95,7 @@ describe('spec 001', () => {
     })));
 
   propriete('[001:P-5] les créneaux restent dans les horaires d’ouverture (Europe/Paris)', () =>
-    fc.assert(fc.property(jourArb, (jour) => {
+    sousFuseaux(() => fc.assert(fc.property(jourArb, (jour) => {
       const liste = creneauxDuJour(jour);
       const midi = new Date(`${jour}T12:00:00Z`);
       const ouvert = ['Tue', 'Fri'].includes(parisParts(midi).weekday);
@@ -89,19 +107,19 @@ describe('spec 001', () => {
         const suivant = liste[k + 1];
         return minutes === 17 * 60 + 15 * k && (!suivant || suivant.debut.getTime() - c.debut.getTime() === 15 * MIN);
       });
-    })));
+    }), { examples: BASCULES.map((j) => [j] as [string]) })));
 
   propriete('[001:P-6] l’heure affichée est celle d’Europe/Paris', () =>
-    fc.assert(fc.property(instantArb, (d) => {
+    sousFuseaux(() => fc.assert(fc.property(instantArb, (d) => {
       const p = parisParts(d);
       expect(heureAffichee(d)).toBe(`${p.hour}:${p.minute}`);
-    })));
+    }), { examples: ['2026-03-29T00:59:59Z', '2026-03-29T01:00:00Z', '2026-10-25T00:59:59Z', '2026-10-25T01:00:00Z'].map((t) => [new Date(t)] as [Date]) })));
 
   propriete('[001:P-7] modification possible si et seulement si au moins 24 h avant', () =>
     fc.assert(fc.property(instantArb, fc.integer({ min: -48 * 60, max: 96 * 60 }), (debut, deltaMin) => {
       const maintenant = new Date(debut.getTime() - deltaMin * MIN);
       expect(modifiable(maintenant, { debut })).toBe(deltaMin * MIN >= 24 * H);
-    })));
+    }), { examples: [1438, 1439, 1440, 1441, 1442].map((m) => [new Date('2026-12-08T16:00:00Z'), m] as [Date, number]) }));
 
   propriete('[001:P-8] le rappel part 1 h avant le créneau', () =>
     fc.assert(fc.property(instantArb, (debut) => {
@@ -116,10 +134,10 @@ describe('spec 001', () => {
           commande: `c${k}`, creneau: base + j * 24 * H, nom: 'Nom', telephone: '0600000000', recupere: false,
         })),
       };
-      const cible = new Date(base + 3 * 24 * H).toISOString().slice(0, 10);
+      const cible = jourParis(new Date(base + 3 * 24 * H));
       const apres = purger(etat, cible);
       apres.reservations.forEach((r, k) => {
-        const dujour = new Date(r.creneau).toISOString().slice(0, 10) === cible;
+        const dujour = jourParis(new Date(r.creneau)) === cible;
         expect(r.nom === undefined && r.telephone === undefined).toBe(dujour);
         if (!dujour) expect(r).toEqual(etat.reservations[k]);
       });

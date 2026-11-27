@@ -31,7 +31,7 @@ export function purger(etat: Etat, jour: string): Etat;  // supprime nom/télép
 ```
 
 ## Ordre de travail
-1. Domaine pur (`src/domain/creneaux.ts`) : faire passer P-1 à P-9.
+1. Domaine pur (`src/domain/creneaux.ts`) : faire passer P-1 à P-8 (P-9, la purge, relève de la sous-issue 5).
 2. Stockage et API (lien personnel par jeton, lecture des créneaux, réserver/annuler/déplacer).
 3. UI adhérent (mobile) : SC-1 à SC-6, SC-9.
 4. UI bénévole : liste par créneau, case « récupéré », ajout d'un retrait sans créneau : SC-7, SC-8.
@@ -41,7 +41,7 @@ export function purger(etat: Etat, jour: string): Etat;  // supprime nom/télép
 | # | Titre | Catégorie | Effort | Exécution | Couvre |
 |---|---|---|---|---|---|
 | 1 | Domaine : créneaux, capacité, délai, fuseau | Feature | Medium | Action (auto) | P-1 à P-8 |
-| 2 | Stockage, API et lien personnel | Feature | Medium | Action (auto) | SC-9, P-3, P-4 |
+| 2 | Stockage, API et lien personnel | Feature | Medium | Action (auto) | SC-9 (l'API doit préserver P-3, P-4) |
 | 3 | UI adhérent : réserver, annuler, déplacer | Feature | Medium | Action (auto) | SC-1 à SC-6 |
 | 4 | UI bénévole : liste et retraits | Feature | Low | Action (auto) | SC-7, SC-8 |
 | 5 | Rappel SMS et purge RGPD | Feature | Medium | Local (clés SMS) | P-8, P-9 |
