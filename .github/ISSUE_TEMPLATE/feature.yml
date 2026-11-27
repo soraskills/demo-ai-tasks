@@ -1,0 +1,22 @@
+name: Idée de fonctionnalité
+description: Point de départ d'une feature (voie Feature). Elle deviendra un intent/NNN-*.md.
+title: "[Idée] "
+labels: ["idee"]
+projects: ["soraskills/3"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Une idée se transforme en **intent** avec Claude : dans le repo, lance Claude Code puis dis
+        « aide-moi à rédiger l'intent de l'issue #<n> » (skill `redaction-intent`). Pousser l'intent sur main lance la spec.
+  - type: textarea
+    id: probleme
+    attributes:
+      label: Problème
+      description: Qui est gêné, quand, à quelle fréquence.
+    validations:
+      required: true
+  - type: textarea
+    id: resultat
+    attributes:
+      label: Résultat attendu

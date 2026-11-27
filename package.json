@@ -1,0 +1,27 @@
+{
+  "name": "creneau",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Créneau : réservation de créneaux de retrait pour l'épicerie coopérative fictive La Cagette du Quai (démo AI-native SDLC).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:props": "vitest run tests/properties",
+    "e2e": "playwright test",
+    "verify": "npm run lint && npm test && npm run build && npm run e2e && npm run sdlc:trace",
+    "sdlc:trace": "node scripts/sdlc-trace.mjs",
+    "sdlc:gate": "node scripts/sdlc-gate.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^22.20.7",
+    "fast-check": "^4.11.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.4.0",
+    "vitest": "^5.1.2"
+  }
+}

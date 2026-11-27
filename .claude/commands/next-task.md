@@ -22,6 +22,9 @@ Tu traites une tâche du GitHub Project **soraskills #3** (https://github.com/or
   et crée la branche `claude/<n>-<slug-court>` depuis la branche par défaut à jour.
 
 ## 3. Réaliser
+- Voie Feature : si la sous-issue couvre des `SC-n`, lance d'abord l'agent **testeur** (scénarios rouges, commit séparé), puis implémente.
+- Voie Bug : la branche du triage contient déjà le test rouge ; fais-le passer sans le modifier.
+- Termine par l'agent **verificateur** et colle son verdict dans la PR.
 - Respecte le CLAUDE.md du repo et la section "Hors périmètre" de l'issue.
 - Coche mentalement chaque critère d'acceptation ; lance les tests / le lint du projet.
 - Commits petits et explicites, message référençant `#<n>`.

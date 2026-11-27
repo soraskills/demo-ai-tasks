@@ -1,0 +1,52 @@
+name: Spec (intent → spec + plan + propriétés)
+
+# Étape Design : quand un intent arrive sur main, Claude rédige spec, plan et tests de propriété
+# et ouvre une PR « sdlc:spec ». Merger cette PR = gate 1 (« go dev »).
+on:
+  push:
+    branches: [main]
+    paths: ['intent/[0-9][0-9][0-9]-*.md']
+  workflow_dispatch:
+    inputs:
+      intent:
+        description: Chemin de l'intent (ex. intent/001-reserver-creneau.md)
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  spec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Quel intent ?
+        id: which
+        run: |
+          if [ -n "${{ inputs.intent }}" ]; then F="${{ inputs.intent }}";
+          else F=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'intent/[0-9][0-9][0-9]-*.md' | head -1); fi
+          echo "file=$F" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.which.outputs.file != ''
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: steps.which.outputs.file != ''
+      - uses: anthropics/claude-code-action@v1
+        if: steps.which.outputs.file != ''
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Applique le skill redaction-spec (.claude/skills/redaction-spec/SKILL.md) à ${{ steps.which.outputs.file }}.
+            Travaille sur la branche claude/spec-<NNN>, puis ouvre une PR avec le label « sdlc:spec »
+            dont le corps suit la section « PR de spec » du skill. Ne merge rien.
+          claude_args: |
+            --max-turns 60
+            --allowedTools Read,Write,Edit,Glob,Grep,Bash(git:*),Bash(gh pr create:*),Bash(gh label:*),Bash(npm test:*),Bash(npm run lint:*),Bash(npm run sdlc\:trace:*)

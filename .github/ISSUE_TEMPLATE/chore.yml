@@ -1,0 +1,29 @@
+name: Tâche technique
+description: Refacto, infra ou doc, sans changement de comportement (voie Chore)
+title: "[Chore] "
+projects: ["soraskills/3"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Aucun comportement ne doit changer : tous les tests existants passent sans modification.
+        Passer en **Ready for Claude** (gate 1), puis `/next-task` en local ou le label **claude** pour l'Action.
+  - type: textarea
+    id: objectif
+    attributes:
+      label: Objectif
+    validations:
+      required: true
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Critères d'acceptation
+      value: |
+        - [ ]
+        - [ ] `npm run verify` passe, aucun test existant modifié
+    validations:
+      required: true
+  - type: textarea
+    id: contraintes
+    attributes:
+      label: Hors périmètre / contraintes

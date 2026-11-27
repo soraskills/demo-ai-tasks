@@ -1,0 +1,54 @@
+name: CI
+
+# Vérifie chaque PR. Le job « verify » est le check obligatoire de la protection de main.
+on:
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Lint (types)
+        run: npm run lint
+      - name: Unitaires + propriétés
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Playwright
+        run: npm run e2e
+      - name: Traçabilité spec → tests
+        run: npm run sdlc:trace
+      - name: Tests gelés modifiés dans cette PR ?
+        if: github.event_name == 'pull_request'
+        run: |
+          CHANGED=$(git diff --name-status origin/${{ github.base_ref }}...HEAD -- tests/properties e2e | grep -v '^A' || true)
+          if [ -n "$CHANGED" ]; then
+            { echo "### ⚠️ Tests gelés modifiés"; echo "Le prochain déploiement passera par une validation humaine."; echo '```'; echo "$CHANGED"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Tests gelés modifiés : le déploiement demandera une validation humaine."
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapports-tests
+          path: reports/
+          retention-days: 14

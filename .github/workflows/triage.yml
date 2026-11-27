@@ -1,0 +1,44 @@
+name: Triage bug
+
+# Voie Fix : Claude reproduit le bug, poste un diagnostic et ouvre une PR (brouillon) qui ne contient
+# QUE le test rouge. Il classe l'issue Fix ou Feature. Un humain passe ensuite l'issue en
+# « Ready for Claude » (gate 1) pour lancer la correction.
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Numéro de l'issue
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  triage:
+    if: github.event_name == 'workflow_dispatch' || (github.event.label.name == 'bug' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ISSUE: ${{ inputs.issue || github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Applique le skill triage-bug (.claude/skills/triage-bug/SKILL.md) à l'issue #${{ env.ISSUE }} de ${{ github.repository }}.
+            Ne modifie aucun fichier sous src/. Ne merge rien.
+          claude_args: |
+            --max-turns 50
+            --allowedTools Read,Write,Glob,Grep,Bash(git:*),Bash(gh issue:*),Bash(gh pr create:*),Bash(npm test:*),Bash(npm run build:*),Bash(npx playwright test:*),Bash(bash .claude/scripts/project-status.sh:*)
