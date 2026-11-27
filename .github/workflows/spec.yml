@@ -2,6 +2,8 @@ name: Spec (intent → spec + plan + propriétés)
 
 # Étape Design : quand un intent arrive sur main, Claude rédige spec, plan et tests de propriété
 # et ouvre une PR « sdlc:spec ». Merger cette PR = gate 1 (« go dev »).
+# claude-code-action ne gère pas l'événement `push` : le job « relais » détecte les intents
+# ajoutés par le push et relance ce workflow en workflow_dispatch, un run par intent.
 on:
   push:
     branches: [main]
@@ -13,36 +15,60 @@ on:
         required: true
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  id-token: write
+  contents: read
 
 jobs:
-  spec:
+  relais:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+      - name: Relancer en workflow_dispatch pour chaque intent ajouté
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          git diff --name-only --diff-filter=A "$BEFORE" HEAD -- 'intent/[0-9][0-9][0-9]-*.md' |
+          while read -r F; do
+            echo "→ $F"
+            gh workflow run spec.yml --ref main -f intent="$F"
+          done
+
+  spec:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
       - name: Quel intent ?
         id: which
+        env:
+          F: ${{ inputs.intent }}
         run: |
-          if [ -n "${{ inputs.intent }}" ]; then F="${{ inputs.intent }}";
-          else F=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'intent/[0-9][0-9][0-9]-*.md' | head -1); fi
+          if [[ ! "$F" =~ ^intent/[0-9]{3}-[a-z0-9-]+\.md$ ]] || [ ! -f "$F" ]; then
+            echo "::error::Intent invalide ou absent : $F"; exit 1
+          fi
           echo "file=$F" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
-        if: steps.which.outputs.file != ''
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-        if: steps.which.outputs.file != ''
       - uses: anthropics/claude-code-action@v1
-        if: steps.which.outputs.file != ''
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Le relais déclenche ce job avec le GITHUB_TOKEN : l'acteur est github-actions[bot].
+          allowed_bots: github-actions
           prompt: |
             Applique le skill redaction-spec (.claude/skills/redaction-spec/SKILL.md) à ${{ steps.which.outputs.file }}.
             Travaille sur la branche claude/spec-<NNN>, puis ouvre une PR avec le label « sdlc:spec »
