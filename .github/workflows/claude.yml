@@ -16,6 +16,7 @@ permissions:
   pull-requests: write
   issues: write
   id-token: write
+  actions: read
 
 concurrency:
   group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
@@ -53,8 +54,13 @@ jobs:
           label_trigger: claude
           branch_prefix: claude/
           track_progress: true
+          # Claude lit les runs CI de la PR (check « verify ») : sur les PR ouvertes par un bot,
+          # l'action refuse les commandes npm (restrict_untrusted_prs, laissé actif car le repo est public).
+          additional_permissions: |
+            actions: read
           claude_args: |
             --max-turns 60
+            --allowedTools Read,Write,Edit,Glob,Grep,Bash(git:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr comment:*),Bash(gh pr create:*),Bash(gh run view:*),Bash(gh run list:*),Bash(gh issue view:*),Bash(npm test:*),Bash(npm run lint:*),Bash(npm run test\:props:*),Bash(npm run sdlc\:trace:*),Bash(npx playwright test:*)
 
       - name: Statut → Needs review
         if: success() && github.event_name == 'issues' && env.GH_TOKEN != ''
