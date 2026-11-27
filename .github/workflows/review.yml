@@ -24,6 +24,8 @@ jobs:
         id: claude
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Les PR de spec, de triage et de build sont ouvertes par l'app Claude (acteur claude[bot]).
+          allowed_bots: claude
           prompt: |
             Relis la PR #${{ github.event.pull_request.number }} en suivant REVIEW.md, passe par passe.
             Publie tes findings en commentaires inline puis un commentaire de synthèse.
