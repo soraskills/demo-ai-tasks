@@ -16,7 +16,12 @@ export type Resultat =
   | { ok: true; etat: Etat }
   | { ok: false; raison: 'complet' | 'deja_reserve' | 'trop_tard' | 'introuvable' };
 
-export function creneauxDuJour(_jour: string): Creneau[] { throw new NonImplemente('creneauxDuJour'); }
+/** Dates fermées (jours fériés, distributions annulées), au format YYYY-MM-DD, jour de Paris. */
+export type Fermetures = ReadonlySet<string>;
+
+export function creneauxDuJour(_jour: string, _fermetures: Fermetures = new Set()): Creneau[] { throw new NonImplemente('creneauxDuJour'); }
+/** Les 2 prochaines distributions (YYYY-MM-DD, Paris) ouvertes à la réservation (R-12). */
+export function distributionsOuvertes(_maintenant: Date, _fermetures: Fermetures = new Set()): string[] { throw new NonImplemente('distributionsOuvertes'); }
 export function heureAffichee(_instant: Date): string { throw new NonImplemente('heureAffichee'); }
 export function placesRestantes(_etat: Etat, _creneau: Creneau): number { throw new NonImplemente('placesRestantes'); }
 export function modifiable(_maintenant: Date, _creneau: Creneau): boolean { throw new NonImplemente('modifiable'); }

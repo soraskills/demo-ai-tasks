@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { describe, expect } from 'vitest';
 import { propriete } from '../sdlc';
 import {
-  CAPACITE, annuler, creneauxDuJour, deplacer, heureAffichee, heureRappel,
+  CAPACITE, annuler, creneauxDuJour, deplacer, distributionsOuvertes, heureAffichee, heureRappel,
   modifiable, purger, reserver, type Creneau, type Etat,
 } from '../../src/domain/creneaux';
 
@@ -141,5 +141,41 @@ describe('spec 001', () => {
         expect(r.nom === undefined && r.telephone === undefined).toBe(dujour);
         if (!dujour) expect(r).toEqual(etat.reservations[k]);
       });
+    })));
+
+  propriete('[001:P-10] aucun créneau un jour fermé, les autres jours inchangés', () =>
+    fc.assert(fc.property(jourArb, fc.uniqueArray(jourArb, { maxLength: 10 }), fc.boolean(), (jour, autres, fermer) => {
+      const fermetures = new Set(fermer ? [...autres, jour] : autres.filter((j) => j !== jour));
+      const liste = creneauxDuJour(jour, fermetures);
+      if (fermetures.has(jour)) expect(liste).toEqual([]);
+      else expect(liste).toEqual(creneauxDuJour(jour));
+    }), { examples: [['2026-12-25', [], true], ['2026-12-25', ['2026-12-22'], false]] }));
+
+  // Oracle naïf pour P-11 : parcours jour par jour à partir du jour courant (Paris).
+  const jourSuivant = (j: string) => new Date(Date.parse(`${j}T12:00:00Z`) + 24 * H).toISOString().slice(0, 10);
+  function oracleDistributions(maintenant: Date, fermetures: ReadonlySet<string>): string[] {
+    const aujourdhui = jourParis(maintenant);
+    const p = parisParts(maintenant);
+    const avant19h = Number(p.hour) < 19;
+    const res: string[] = [];
+    for (let j = aujourdhui; res.length < 2; j = jourSuivant(j)) {
+      const ouvert = ['Tue', 'Fri'].includes(parisParts(new Date(`${j}T12:00:00Z`)).weekday);
+      if (ouvert && !fermetures.has(j) && (j !== aujourdhui || avant19h)) res.push(j);
+    }
+    return res;
+  }
+
+  propriete('[001:P-11] seules les 2 prochaines distributions sont ouvertes à la réservation', () =>
+    sousFuseaux(() => fc.assert(fc.property(instantArb, fc.uniqueArray(jourArb, { maxLength: 6 }), (maintenant, fermes) => {
+      const fermetures = new Set(fermes);
+      expect(distributionsOuvertes(maintenant, fermetures)).toEqual(oracleDistributions(maintenant, fermetures));
+    }), {
+      examples: [
+        // Mardi 8/12/2026 à 18 h 59 et 19 h 00 (Paris, UTC+1) : la distribution du jour compte, puis ne compte plus.
+        [new Date('2026-12-08T17:59:00Z'), []],
+        [new Date('2026-12-08T18:00:00Z'), []],
+        // Vendredi 25/12/2026 fermé : la distribution suivante prend sa place.
+        [new Date('2026-12-21T09:00:00Z'), ['2026-12-25']],
+      ],
     })));
 });
