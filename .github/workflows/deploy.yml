@@ -1,0 +1,93 @@
+name: Deploy
+
+# Gate 2 : déploiement automatique si la gate est verte (scripts/sdlc-gate.mjs),
+# sinon validation humaine via l'environment « production-approval ».
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+    outputs:
+      green: ${{ steps.gate.outputs.green }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git fetch --tags --force
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Les tests ne font pas échouer le job : c'est la gate qui décide, à partir des rapports.
+      - name: Unitaires + propriétés
+        run: npm test
+        continue-on-error: true
+      - name: Playwright
+        run: npm run e2e
+        continue-on-error: true
+      - name: Gate
+        id: gate
+        run: npm run sdlc:gate
+      - name: Build pour Pages
+        run: npm run build
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapports-tests
+          path: reports/
+          retention-days: 30
+
+  approval:
+    needs: verify
+    if: needs.verify.outputs.green != 'true'
+    runs-on: ubuntu-latest
+    environment: production-approval
+    steps:
+      - run: echo "Déploiement approuvé manuellement malgré une gate non verte (voir le résumé du job verify)."
+
+  deploy:
+    needs: [verify, approval]
+    if: always() && needs.verify.result == 'success' && (needs.verify.outputs.green == 'true' || needs.approval.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  mark:
+    needs: deploy
+    if: always() && needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag « prod » = base des tests gelés pour la prochaine gate
+        run: |
+          git tag -f prod "$GITHUB_SHA"
+          git push -f origin prod

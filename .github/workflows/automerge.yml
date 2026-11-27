@@ -1,0 +1,22 @@
+name: Auto-merge
+
+# Profil petite équipe : pas de relecture humaine des PR de code. Une PR de Claude
+# (branche claude/*) est mergée automatiquement dès que les checks obligatoires sont verts.
+# Exception : les PR de spec (label sdlc:spec) = gate 1, mergées par un humain.
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable:
+    if: startsWith(github.head_ref, 'claude/') && !contains(github.event.pull_request.labels.*.name, 'sdlc:spec') && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh pr merge --auto --squash "$PR" -R "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}

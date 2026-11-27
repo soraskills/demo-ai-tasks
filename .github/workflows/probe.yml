@@ -1,0 +1,53 @@
+name: Sonde prod
+
+# Étape Maintain : rejoue les tests marqués @sonde contre la prod (fuseau Europe/Paris).
+# En cas d'échec, ouvre (ou complète) une issue « bug » + « sonde », que triage.yml prend en charge.
+# Le déclenchement planifié est désactivé tant que l'équipe ne l'a pas validé : décommenter « schedule ».
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '*/30 * * * *'
+
+permissions:
+  contents: read
+  issues: write
+  actions: write # pour lancer triage.yml (un événement créé par GITHUB_TOKEN ne déclenche pas d'autre workflow)
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: 'true'
+      BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Tests @sonde contre la prod
+        id: run
+        run: npx playwright test --grep @sonde
+        continue-on-error: true
+      - name: Ouvrir une issue si rouge
+        if: steps.run.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          EXISTING=$(gh issue list -l sonde -s open --json number -q '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "Toujours rouge : $RUN_URL"
+          else
+            URL=$(gh issue create -l bug -l sonde --title "[Sonde] Tests @sonde rouges en prod" \
+              --body "La sonde de prod a échoué : $RUN_URL. Rapport Playwright en artefact du run. Triage automatique à suivre.")
+            gh workflow run triage.yml -f issue="${URL##*/}"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapport-sonde
+          path: reports/

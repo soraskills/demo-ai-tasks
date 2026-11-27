@@ -1,0 +1,34 @@
+name: Bug
+description: Un comportement déjà spécifié ne marche pas (voie Fix)
+title: "[Bug] "
+labels: ["bug"]
+projects: ["soraskills/3"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Le label **bug** lance le triage automatique : diagnostic + PR brouillon avec le test rouge.
+        Passer ensuite l'issue en **Ready for Claude** = feu vert pour la correction (gate 1).
+  - type: textarea
+    id: observe
+    attributes:
+      label: Comportement observé
+    validations:
+      required: true
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Comportement attendu
+      description: Si possible, l'exigence de la spec concernée (ex. 001:SC-2 ou 001:P-3).
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Étapes, données, navigateur, fuseau horaire, capture.
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options: ["Bloquant", "Gênant", "Mineur"]
